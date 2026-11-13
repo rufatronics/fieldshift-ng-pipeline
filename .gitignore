@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+.env
+fieldshift_cache/
+fieldshift_data/
+.ipynb_checkpoints/
