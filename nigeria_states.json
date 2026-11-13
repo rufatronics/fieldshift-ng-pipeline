@@ -1,0 +1,224 @@
+{
+  "abia": {
+    "name": "Abia",
+    "lat": 5.363806,
+    "lon": 7.463676,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "adamawa": {
+    "name": "Adamawa",
+    "lat": 9.611231,
+    "lon": 12.598197,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "akwa_ibom": {
+    "name": "Akwa Ibom",
+    "lat": 4.880701,
+    "lon": 7.865254,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "anambra": {
+    "name": "Anambra",
+    "lat": 6.103204,
+    "lon": 6.941163,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "bauchi": {
+    "name": "Bauchi",
+    "lat": 10.983147,
+    "lon": 10.051332,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "bayelsa": {
+    "name": "Bayelsa",
+    "lat": 4.850412,
+    "lon": 6.186667,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "benue": {
+    "name": "Benue",
+    "lat": 7.28654,
+    "lon": 8.618917,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "borno": {
+    "name": "Borno",
+    "lat": 11.732769,
+    "lon": 13.130077,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "cross_river": {
+    "name": "Cross River",
+    "lat": 5.806067,
+    "lon": 8.519687,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "delta": {
+    "name": "Delta",
+    "lat": 5.737266,
+    "lon": 6.035127,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "ebonyi": {
+    "name": "Ebonyi",
+    "lat": 6.19918,
+    "lon": 7.977505,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "edo": {
+    "name": "Edo",
+    "lat": 6.685301,
+    "lon": 6.006639,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "ekiti": {
+    "name": "Ekiti",
+    "lat": 7.698059,
+    "lon": 5.26262,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "enugu": {
+    "name": "Enugu",
+    "lat": 6.545598,
+    "lon": 7.426764,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "federal_capital_territory": {
+    "name": "Federal Capital Territory",
+    "lat": 8.880077,
+    "lon": 7.161301,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "gombe": {
+    "name": "Gombe",
+    "lat": 10.302774,
+    "lon": 11.283486,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "imo": {
+    "name": "Imo",
+    "lat": 5.626396,
+    "lon": 7.120762,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "jigawa": {
+    "name": "Jigawa",
+    "lat": 12.313908,
+    "lon": 9.450431,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "kaduna": {
+    "name": "Kaduna",
+    "lat": 10.422557,
+    "lon": 7.869464,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "kano": {
+    "name": "Kano",
+    "lat": 11.855044,
+    "lon": 8.486417,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "katsina": {
+    "name": "Katsina",
+    "lat": 12.43767,
+    "lon": 7.719513,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "kebbi": {
+    "name": "Kebbi",
+    "lat": 11.851486,
+    "lon": 4.519383,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "kogi": {
+    "name": "Kogi",
+    "lat": 7.640898,
+    "lon": 6.578465,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "kwara": {
+    "name": "Kwara",
+    "lat": 8.52095,
+    "lon": 4.742419,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "lagos": {
+    "name": "Lagos",
+    "lat": 6.53674,
+    "lon": 3.402205,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "nassarawa": {
+    "name": "Nassarawa",
+    "lat": 8.586333,
+    "lon": 8.25024,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "niger": {
+    "name": "Niger",
+    "lat": 9.684409,
+    "lon": 6.031027,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "ogun": {
+    "name": "Ogun",
+    "lat": 6.919142,
+    "lon": 3.470078,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "ondo": {
+    "name": "Ondo",
+    "lat": 7.052315,
+    "lon": 5.238769,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "osun": {
+    "name": "Osun",
+    "lat": 7.66742,
+    "lon": 4.55776,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "oyo": {
+    "name": "Oyo",
+    "lat": 7.872814,
+    "lon": 3.80625,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "plateau": {
+    "name": "Plateau",
+    "lat": 9.381357,
+    "lon": 9.299482,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "rivers": {
+    "name": "Rivers",
+    "lat": 4.820866,
+    "lon": 7.01351,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "sokoto": {
+    "name": "Sokoto",
+    "lat": 13.061409,
+    "lon": 5.31274,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "taraba": {
+    "name": "Taraba",
+    "lat": 8.161738,
+    "lon": 10.838751,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "yobe": {
+    "name": "Yobe",
+    "lat": 12.253752,
+    "lon": 11.285807,
+    "coordinate_method": "mean of public ward coordinates"
+  },
+  "zamfara": {
+    "name": "Zamfara",
+    "lat": 12.338415,
+    "lon": 6.331266,
+    "coordinate_method": "mean of public ward coordinates"
+  }
+}

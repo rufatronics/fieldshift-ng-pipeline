@@ -3,6 +3,14 @@ name: FieldShift NG NASA pipeline
 on:
   workflow_dispatch:
     inputs:
+      scope:
+        description: Geographic scope for this run
+        type: choice
+        required: true
+        default: three_zones
+        options:
+          - three_zones
+          - nigeria_states
       test_mode:
         description: Run the 1-zone, 2-year test configuration
         type: boolean
@@ -25,9 +33,10 @@ jobs:
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      FIELD_SHIFT_SCOPE: ${{ github.event_name == 'workflow_dispatch' && inputs.scope || 'three_zones' }}
       FIELD_SHIFT_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_mode || false }}
       FIELD_SHIFT_HF_OWNER: rufatronics
-      FIELD_SHIFT_HF_REPO_NAME: fieldshift-ng-data
+      FIELD_SHIFT_HF_REPO_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.scope == 'nigeria_states' && 'fieldshift-ng-data-nigeria' || 'fieldshift-ng-data' }}
       FIELD_SHIFT_HF_PRIVATE: 'true'
       PYTHONUNBUFFERED: '1'
 
@@ -46,7 +55,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: fieldshift_cache
-          key: fieldshift-cache-${{ runner.os }}-${{ hashFiles('fieldshift_pipeline.py') }}
+          key: fieldshift-cache-${{ runner.os }}-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}
           restore-keys: |
             fieldshift-cache-${{ runner.os }}-
 

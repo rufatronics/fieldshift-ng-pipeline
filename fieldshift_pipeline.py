@@ -97,12 +97,18 @@ HF_OWNER = os.getenv("FIELD_SHIFT_HF_OWNER") or None
 HF_REPO_NAME = os.getenv("FIELD_SHIFT_HF_REPO_NAME", "fieldshift-ng-data")
 HF_PRIVATE = env_bool("FIELD_SHIFT_HF_PRIVATE", True)
 USE_DRIVE_CACHE = False      # SET True for the full run (Colab): finished years survive a disconnect
+PIPELINE_SCOPE = os.getenv("FIELD_SHIFT_SCOPE", "three_zones")
 
 ZONES = {
     "kano":    dict(name="Kano",    lat=12.0022, lon=8.5919),
     "katsina": dict(name="Katsina", lat=12.9908, lon=7.6018),
     "sokoto":  dict(name="Sokoto",  lat=13.0059, lon=5.2476),
 }
+if PIPELINE_SCOPE == "nigeria_states":
+    state_file = Path(__file__).resolve().parent / "nigeria_states.json"
+    ZONES = json.loads(state_file.read_text())
+elif PIPELINE_SCOPE != "three_zones":
+    raise ValueError(f"Unsupported FIELD_SHIFT_SCOPE: {PIPELINE_SCOPE}")
 BOX_DEG = 0.25               # IMERG: mean over zone point +/- this many degrees
 MODIS_KM = 1                 # MODIS: pixels within +/- this many km of the point
 TERRAIN_BOX_DEG = 0.05       # SRTM: terrain window half-width (~5.5 km)
