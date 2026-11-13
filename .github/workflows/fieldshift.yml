@@ -1,0 +1,73 @@
+name: FieldShift NG NASA pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: Run the 1-zone, 2-year test configuration
+        type: boolean
+        required: true
+        default: true
+  schedule:
+    - cron: '17 2 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldshift-ng-pipeline
+  cancel-in-progress: false
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      FIELD_SHIFT_TEST_MODE: ${{ github.event_name == 'workflow_dispatch' && inputs.test_mode || false }}
+      FIELD_SHIFT_HF_OWNER: rufatronics
+      FIELD_SHIFT_HF_REPO_NAME: fieldshift-ng-data
+      FIELD_SHIFT_HF_PRIVATE: 'true'
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Restore pipeline cache
+        uses: actions/cache@v4
+        with:
+          path: fieldshift_cache
+          key: fieldshift-cache-${{ runner.os }}-${{ hashFiles('fieldshift_pipeline.py') }}
+          restore-keys: |
+            fieldshift-cache-${{ runner.os }}-
+
+      - name: Verify required secrets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HF_TOKEN" || { echo 'HF_TOKEN secret is missing'; exit 1; }
+          test -n "$EARTHDATA_TOKEN" || { echo 'EARTHDATA_TOKEN secret is missing'; exit 1; }
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Run FieldShift pipeline
+        run: python fieldshift_pipeline.py
+
+      - name: Upload local artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldshift-run-${{ github.run_id }}
+          path: fieldshift_data/
+          if-no-files-found: ignore
+          retention-days: 14
