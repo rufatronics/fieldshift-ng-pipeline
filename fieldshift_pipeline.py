@@ -92,6 +92,9 @@ USE_IMERG = env_bool("FIELD_SHIFT_USE_IMERG", True)
 USE_MODIS = env_bool("FIELD_SHIFT_USE_MODIS", True)
 USE_SRTM = env_bool("FIELD_SHIFT_USE_SRTM", True)
 UPLOAD_TO_HF = env_bool("FIELD_SHIFT_UPLOAD_TO_HF", True)
+TIME_BUDGET_SECONDS = int(os.getenv("FIELD_SHIFT_TIME_BUDGET_SECONDS", "0"))
+PARALLEL_WORKERS = int(os.getenv("FIELD_SHIFT_PARALLEL_WORKERS", "6"))
+FORCE_RERUN = env_bool("FIELD_SHIFT_FORCE_RERUN", False)
 
 HF_OWNER = os.getenv("FIELD_SHIFT_HF_OWNER") or None
 HF_REPO_NAME = os.getenv("FIELD_SHIFT_HF_REPO_NAME", "fieldshift-ng-data")
@@ -151,9 +154,27 @@ else:
         print("USE_DRIVE_CACHE ignored (not in Colab) -> local cache")
     CACHE = BASE / "fieldshift_cache"
 CACHE.mkdir(parents=True, exist_ok=True)
+COMPLETE_MARKER = CACHE / f"complete_{PIPELINE_SCOPE}_{START_YEAR}_{END_YEAR}.json"
 
 STATUS = {}      # stage -> "ok" / "partial: ..." / "failed: ..." / "skipped"
 DETAILS = {}     # extra per-stage diagnostics for the manifest
+RUN_STARTED = time.monotonic()
+
+
+class GracefulPause(RuntimeError):
+    """Raised at a safe checkpoint so the workflow can save cache and resume later."""
+
+
+def time_budget_reached(reserve_seconds=120):
+    return TIME_BUDGET_SECONDS > 0 and time.monotonic() - RUN_STARTED >= max(
+        0, TIME_BUDGET_SECONDS - reserve_seconds
+    )
+
+
+def pause_if_needed(where):
+    if time_budget_reached():
+        print(f"checkpoint reached after {time.monotonic() - RUN_STARTED:.0f}s at {where}; resume next run", flush=True)
+        raise GracefulPause(where)
 
 
 def _load_dotenv(path=".env"):
@@ -503,6 +524,7 @@ def run_imerg():
         ea = earthdata_login()
         frames = []
         for y in range(max(IMERG_START_YEAR, START_YEAR), END_YEAR + 1):
+            pause_if_needed(f"before IMERG {y}")
             t0 = time.time()
             frames.append(fetch_imerg_year(ea, y))
             print(f"IMERG {y} done in {time.time() - t0:.0f}s", flush=True)
@@ -593,11 +615,13 @@ def fetch_modis(zid, z):
     for yr in sorted({d["calendar_date"][:4] for d in todo}):
         yr_dates = [d for d in todo if d["calendar_date"][:4] == yr]
         for i in range(0, len(yr_dates), MODIS_CHUNK):
+            pause_if_needed(f"before MODIS {zid} {yr}")
             ch = yr_dates[i:i + MODIS_CHUNK]
             for cd, val, nok, npx, md in _ornl_rows(z, ch):
                 done[md] = [cd, val, nok, npx]
             part.write_text(json.dumps(done))           # checkpoint after every chunk
             time.sleep(0.5)
+            pause_if_needed(f"after MODIS {zid} {yr}")
 
     rows = [(pd.Timestamp(v[0]), v[1], v[2], v[3]) for v in done.values()]
     df = pd.DataFrame(rows, columns=["date", "ndvi", "n_ok", "n_px"]).sort_values("date").reset_index(drop=True)
@@ -711,13 +735,22 @@ def run_srtm():
         STATUS["srtm"] = f"failed: {e!r}"
         print("SRTM skipped ->", STATUS["srtm"])
         return {}
-    for zid, z in ZONES.items():
+    def one(item):
+        zid, z = item
         try:
-            out[zid] = terrain_for(ea, dict(z, _id=zid))
-            print("SRTM", zid, out[zid], flush=True)
+            return zid, terrain_for(ea, dict(z, _id=zid)), None
         except Exception as e:
-            errs[zid] = repr(e)
-            print("SRTM failed for", zid, "->", repr(e))
+            return zid, None, repr(e)
+
+    with ThreadPoolExecutor(max_workers=min(PARALLEL_WORKERS, max(1, len(ZONES)))) as ex:
+        for zid, value, err in ex.map(one, ZONES.items()):
+            pause_if_needed(f"SRTM {zid}")
+            if err:
+                errs[zid] = err
+                print("SRTM failed for", zid, "->", err)
+            else:
+                out[zid] = value
+                print("SRTM", zid, value, flush=True)
     STATUS["srtm"] = "ok" if out and not errs else (f"partial: {errs}" if out else f"failed: {errs}")
     return out
 
@@ -910,7 +943,7 @@ Missing values stay missing. Read `manifest.json` before using the data.
 def upload():
     if not UPLOAD_TO_HF:
         print("UPLOAD_TO_HF = False -> files kept at", OUT)
-        return
+        return False
     try:
         from huggingface_hub import HfApi
         api = HfApi(token=get_secret("HF_TOKEN"))
@@ -924,17 +957,28 @@ def upload():
                                          f"({'test' if TEST_MODE else 'full'})")
         print("uploaded:", f"https://huggingface.co/datasets/{repo_id}",
               "(private)" if HF_PRIVATE else "(PUBLIC)")
+        return True
     except Exception as e:
         print("Hugging Face upload failed:", repr(e))
         print("Your files are safe locally at:", OUT)
+        return False
 
 
 def run_pipeline():
     t0 = time.time()
+    if COMPLETE_MARKER.exists() and not FORCE_RERUN:
+        print("complete marker found; this scope is already uploaded, nothing to resume")
+        return None
     POWER = {}
-    for zid, z in ZONES.items():
-        POWER[zid] = fetch_power(zid, z)
-        print("POWER", zid, POWER[zid].shape, sorted(POWER[zid].columns), flush=True)
+    def one_power(item):
+        zid, z = item
+        return zid, fetch_power(zid, z)
+
+    with ThreadPoolExecutor(max_workers=min(PARALLEL_WORKERS, max(1, len(ZONES)))) as ex:
+        for zid, frame in ex.map(one_power, ZONES.items()):
+            pause_if_needed(f"POWER {zid}")
+            POWER[zid] = frame
+            print("POWER", zid, frame.shape, sorted(frame.columns), flush=True)
     STATUS["power"] = "ok"
 
     IMERG = run_imerg()
@@ -946,7 +990,11 @@ def run_pipeline():
     print(wide.shape, "| long:", long.shape, "| climatology:", clim.shape)
     print("validation (POWER vs IMERG rainfall):", json.dumps(valid, indent=2))
     save_all(wide, long, clim, var_cols, var_meta, valid, cover, TERRAIN)
-    upload()
+    if upload():
+        COMPLETE_MARKER.write_text(json.dumps({
+            "scope": PIPELINE_SCOPE, "years": [START_YEAR, END_YEAR],
+            "repo": HF_REPO_NAME, "completed_utc": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        }, indent=2))
 
     print("\n--- stage summary ---")
     for k in ("power", "imerg", "modis", "srtm"):
@@ -958,4 +1006,9 @@ def run_pipeline():
 
 
 if __name__ == "__main__":
-    run_pipeline()
+    try:
+        run_pipeline()
+    except GracefulPause as e:
+        STATUS["pipeline"] = f"paused for resume at {e}"
+        print(f"PAUSED: {e}. Existing cache/checkpoints are ready for the next run.", flush=True)
+        sys.exit(75)

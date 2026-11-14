@@ -29,7 +29,7 @@ concurrency:
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 180
     env:
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
@@ -38,6 +38,8 @@ jobs:
       FIELD_SHIFT_HF_OWNER: rufatronics
       FIELD_SHIFT_HF_REPO_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.scope == 'nigeria_states' && 'fieldshift-ng-data-nigeria' || 'fieldshift-ng-data' }}
       FIELD_SHIFT_HF_PRIVATE: 'true'
+      FIELD_SHIFT_TIME_BUDGET_SECONDS: '9600'
+      FIELD_SHIFT_PARALLEL_WORKERS: '6'
       PYTHONUNBUFFERED: '1'
 
     steps:
@@ -51,13 +53,14 @@ jobs:
           cache: pip
           cache-dependency-path: requirements.txt
 
-      - name: Restore pipeline cache
-        uses: actions/cache@v4
+      - name: Restore resumable pipeline cache
+        id: cache-restore
+        uses: actions/cache/restore@v4
         with:
           path: fieldshift_cache
-          key: fieldshift-cache-${{ runner.os }}-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}
+          key: fieldshift-resume-${{ runner.os }}-${{ inputs.scope || 'three_zones' }}-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-${{ github.run_id }}
           restore-keys: |
-            fieldshift-cache-${{ runner.os }}-
+            fieldshift-resume-${{ runner.os }}-${{ inputs.scope || 'three_zones' }}-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-
 
       - name: Verify required secrets are present
         shell: bash
@@ -71,6 +74,13 @@ jobs:
 
       - name: Run FieldShift pipeline
         run: python fieldshift_pipeline.py
+
+      - name: Save resumable pipeline cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: fieldshift_cache
+          key: fieldshift-resume-${{ runner.os }}-${{ inputs.scope || 'three_zones' }}-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-${{ github.run_id }}
 
       - name: Upload local artifacts
         if: always()

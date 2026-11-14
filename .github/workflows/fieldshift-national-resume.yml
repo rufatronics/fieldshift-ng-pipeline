@@ -1,0 +1,80 @@
+name: FieldShift Nigeria resumable continuation
+
+on:
+  schedule:
+    # A chunk runs for at most 160 minutes; this leaves about one hour before the next continuation.
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fieldshift-ng-national-resume
+  cancel-in-progress: false
+
+jobs:
+  resume-national:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      FIELD_SHIFT_SCOPE: nigeria_states
+      FIELD_SHIFT_TEST_MODE: 'false'
+      FIELD_SHIFT_HF_OWNER: rufatronics
+      FIELD_SHIFT_HF_REPO_NAME: fieldshift-ng-data-nigeria
+      FIELD_SHIFT_HF_PRIVATE: 'true'
+      FIELD_SHIFT_TIME_BUDGET_SECONDS: '9600'
+      FIELD_SHIFT_PARALLEL_WORKERS: '6'
+      PYTHONUNBUFFERED: '1'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Restore resumable national cache
+        uses: actions/cache/restore@v4
+        with:
+          path: fieldshift_cache
+          key: fieldshift-resume-${{ runner.os }}-nigeria_states-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-${{ github.run_id }}
+          restore-keys: |
+            fieldshift-resume-${{ runner.os }}-nigeria_states-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-
+
+      - name: Verify required secrets are present
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$HF_TOKEN" || { echo 'HF_TOKEN secret is missing'; exit 1; }
+          test -n "$EARTHDATA_TOKEN" || { echo 'EARTHDATA_TOKEN secret is missing'; exit 1; }
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && python -m pip install -r requirements.txt
+
+      - name: Run resumable national pipeline
+        run: python fieldshift_pipeline.py
+
+      - name: Save resumable national cache
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: fieldshift_cache
+          key: fieldshift-resume-${{ runner.os }}-nigeria_states-${{ hashFiles('fieldshift_pipeline.py', 'nigeria_states.json') }}-${{ github.run_id }}
+
+      - name: Upload checkpoint artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldshift-national-checkpoint-${{ github.run_id }}
+          path: |
+            fieldshift_cache/
+            fieldshift_data/
+          if-no-files-found: ignore
+          retention-days: 14
